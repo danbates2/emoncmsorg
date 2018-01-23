@@ -12,40 +12,61 @@
 // no direct access
 defined('EMONCMS_EXEC') or die('Restricted access');
 
-// It's important to suppress warnings here, so that adding logging is backwards compatible to old installs.
-@define("LOG4PHP_INSTALLED", include_once( 'log4php/Logger.php' ));
-if (LOG4PHP_INSTALLED)
-    @Logger::configure( $log4php_configPath );
-
 class EmonLogger
 {
-    private $concreteLogger;
-    private $loggerConfigured = false;
-    
+    private $logfile = "";
+    private $caller = "";
+    private $logenabled = false;
+    private $log_level = 2;
+
     public function __construct($clientFileName)
     {
-        global $log4php_configPath;
-        if (!$log4php_configPath || !file_exists($log4php_configPath)){
-            $this->loggerConfigured = false;
-            return;
+        global $log_filename, $log_enabled, $log_level;
+
+        if (!$log_enabled) {
+            $this->logenabled = false;
         }
-        
-        
-        if (LOG4PHP_INSTALLED){
-            Logger::configure( $log4php_configPath );
-            $clientFileNameWithoutPath = basename($clientFileName);
-            $this->concreteLogger = Logger::getLogger($clientFileNameWithoutPath);
-            $this->loggerConfigured = true;
+        else if ($log_filename) {
+            if ($log_level) $this->log_level = $log_level;
+            $this->logfile = $log_filename;
+            $this->caller = basename($clientFileName);
+            if (!file_exists($this->logfile))
+            {
+                $fh = @fopen($this->logfile,"a");
+                @fclose($fh);
+            }
+            if (is_writable($this->logfile)) $this->logenabled = true;
         }
     }
 
     public function info ($message){
-        if ($this->loggerConfigured)
-            $this->concreteLogger->info($message);
+        if ($this->log_level <= 1) $this->write("INFO",$message);
+    }
+
+    public function warn ($message){
+        if ($this->log_level <= 2) $this->write("WARN",$message);
+    }
+
+    public function error ($message){
+        if ($this->log_level <= 3) $this->write("ERROR",$message);
+    }
+
+    private function write($type,$message){
+        if (!$this->logenabled) return;
+
+        $now = microtime(true);
+        $micro = sprintf("%03d",($now - ($now >> 0)) * 1000);
+        $now = DateTime::createFromFormat('U', (int)$now); // Only use UTC for logs
+        $now = $now->format("Y-m-d H:i:s").".$micro";
+        // Clear log file if more than 256MB (temporary solution)
+        if (filesize($this->logfile)>(1024*1024*256)) {
+            $fh = @fopen($this->logfile,"w");
+            @fclose($fh);
+        }
+        if ($fh = @fopen($this->logfile,"a")) {
+            @fwrite($fh,$now."|$type|$this->caller|".$message."\n");
+            @fclose($fh);
+        }       
     }
     
-    public function warn ($message){
-        if ($this->loggerConfigured)
-            $this->concreteLogger->warn(date("Y-n-j H:i:s", time()).", ".$message);
-    }
 }

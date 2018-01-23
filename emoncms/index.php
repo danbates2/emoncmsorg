@@ -42,18 +42,26 @@
             $apikey = str_replace('Bearer ', '', $_SERVER["HTTP_AUTHORIZATION"]);
         }
     }
-
-    // UNCOMMENT TO PUT THE SITE OFFLINE!!!!!!!!!
+    
     /*
     if ($apikey) {
-        // echo "ok"; die;
-    } else if(isset($_SESSION['admin'])) {
-    
-    } else {
-        echo file_get_contents("offline.html");
-        die;
+        // Only allow alphanumeric characters
+        if (preg_replace('/[^\w]/','',$apikey)!=$apikey) $apikey = false;
+        // Only allow 32 character length
+        if (strlen($apikey)!=32) $apikey = false;
     }*/
 
+    // UNCOMMENT TO PUT THE SITE OFFLINE!!!!!!!!!
+/*
+    if ($apikey) {
+        echo "ok"; die;
+    } else if(isset($_SESSION['admin'])) {
+
+    } else {
+        //echo file_get_contents("offline.html");
+        //die;
+    }
+*/
     $redis = new Redis();
     $connected = $redis->connect($redis_server);
     if (!$connected) {
@@ -269,7 +277,15 @@
             $session['profile'] = 1;
             $route->controller = $public_profile_controller;
             $route->action = $public_profile_action;
+            
             $output = controller($route->controller);
+            
+            if ($output["content"]=="" && $route->subaction=="graph") {
+                $route->controller = "graph";
+                $route->action = "";
+                $_GET['userid'] = $userid;
+                $output = controller($route->controller);
+            }
         }
     }
 

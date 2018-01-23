@@ -39,6 +39,7 @@ class InputMethods
         
         if (preg_replace('/[^\p{N}\p{L}_\s-.]/u','',$nodeid)!=$nodeid) return "Error: invalid node name";
         if (strlen($nodeid)>16) return "Error: node name must be 16 characters or less";
+        if ($nodeid=="") $nodeid = 0;
 
         // Time
         if ($param->exists('time')) $time = (int) $param->val('time'); else $time = time();
@@ -225,6 +226,8 @@ class InputMethods
                     }
                     $name ++;
                 }
+                
+                if ($nodeid=="") $nodeid = 0;
 
                 $array = array(
                     'userid'=>$userid,

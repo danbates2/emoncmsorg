@@ -244,6 +244,35 @@ var customtablefields = {
             return table.data[row]['#NO_CONFIG#'] ? "" : "<i class='"+table.fields[field].icon+"' type='icon' row='"+row+"' style='cursor:pointer'></i>";
         }
     },
+
+    'date': {
+        'draw': function (t,row,child_row,field) {
+            var date = new Date();
+            date.setTime(1000 * t.data[row][field]); //from seconds to miliseconds
+            return (date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + ' ' + date.getHours() + ':' + date.getMinutes());
+        },
+        'edit':function (t,row,child_row,field) {
+            var date= new Date();
+            date.setTime(1000 * t.data[row][field]); //from seconds to miliseconds
+            var day = date.getDate();
+            var month = date.getMonth() +1; // getMonth() returns 0-11
+            var year = date.getFullYear();
+            var hours= date.getHours();
+            var minutes = date.getMinutes();
+            return '<div class="input-append date" id="'+field +'-'+row+'-'+t.data[row][field]+'" data-format="dd/MM/yyyy hh:mm" data-date="'+day+'/'+month+'/'+year+' '+hours+':'+minutes+'"><input data-format="dd/MM/yyyy hh:mm" value="'+day+'/'+month+'/'+year+' '+hours+':'+minutes+'" type="text" /><span class="add-on"> <i data-time-icon="icon-time" data-date-icon="icon-calendar"></i></span></div>';
+        },
+        'save': function (t,row,child_row,field) { 
+            return parse_timepicker_time($("[row='"+row+"'][child_row='"+child_row+"'][field='"+field+"'] input").val());
+        }    
+    },
+  
+    'fixeddate': {
+        'draw': function (t,row,child_row,field) {
+            var date = new Date();
+            date.setTime(1000 * t.data[row][field]); //from seconds to miliseconds
+            return (date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + ' ' + date.getHours() + ':' + date.getMinutes());
+        }
+    }
 }
 
 
@@ -278,8 +307,7 @@ function list_format_updated(time)
 }
 
 // Format value dynamically 
-function list_format_value(value)
-{
+function list_format_value(value) {
   if (value == null) return 'NULL';
   value = parseFloat(value);
   if (value>=1000) value = parseFloat((value).toFixed(0));
@@ -289,4 +317,33 @@ function list_format_value(value)
   else if (value<=-100) value = parseFloat((value).toFixed(1));
   else if (value<10) value = parseFloat((value).toFixed(2));
   return value;
+}
+
+function list_format_size(bytes) {
+  if (!$.isNumeric(bytes)) {
+    return "n/a";
+  } else if (bytes<1024) {
+    return bytes+"B";
+  } else if (bytes<1024*100) {
+    return (bytes/1024).toFixed(1)+"KB";
+  } else if (bytes<1024*1024) {
+    return Math.round(bytes/1024)+"KB";
+  } else if (bytes<=1024*1024*1024) {
+    return Math.round(bytes/(1024*1024))+"MB";
+  } else {
+    return (bytes/(1024*1024*1024)).toFixed(1)+"GB";
+  }
+}
+
+  function parse_timepicker_time(timestr){
+    var tmp = timestr.split(" ");
+    if (tmp.length!=2) return false;
+
+    var date = tmp[0].split("/");
+    if (date.length!=3) return false;
+
+    var time = tmp[1].split(":");
+    if (time.length!=2) return false;
+
+return new Date(date[2],date[1]-1,date[0],time[0],time[1],0).getTime() / 1000;
 }

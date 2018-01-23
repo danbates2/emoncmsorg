@@ -784,16 +784,21 @@ class PHPFina
         // Maximum request size
         $req_dp = round(($end-$start) / $interval);
         if ($req_dp>8928) return array('success'=>false, 'message'=>"Request datapoint limit reached (8928), increase request interval or time range, requested datapoints = $req_dp");
-        
+
+        $dir = $this->dir;
+        $metafile = fopen($dir.$id.".meta", 'rb');
+        fseek($metafile,8);
+        $tmp = unpack("I",fread($metafile,4));
+        $feed_interval = $tmp[1];
+        fclose($metafile);
+
         $layer_interval = 0;
-        if ($interval>=600) $layer_interval = 600;
+        if ($feed_interval<600 && $interval>=600) $layer_interval = 600;
         
         //if (!$this->calculate_average($id,600,"onthefly")) {
         global $redis;
-        $redis->rpush("phpfina_average_queue",json_encode(array("id"=>$id, "layer_interval"=>600)));
+        if ($feed_interval<600) $redis->rpush("phpfina_average_queue",json_encode(array("id"=>$id, "layer_interval"=>600)));
         //}
-        
-        $dir = $this->dir;
         
         $mode = "frombase";
         if ($layer_interval>0) {
@@ -823,6 +828,8 @@ class PHPFina
             }
             return $this->get_data_new($id,$start*1000,$end*1000,$interval,0,0);
         }
+        
+        if ($interval<$meta->interval) return array('success'=>false, 'message'=>"Request interval is less than feed data interval");
         
         $interval = round($interval / $meta->interval) * $meta->interval;
         
@@ -904,13 +911,20 @@ class PHPFina
         if ($mode=="daily") $interval = 86400;
         if ($mode=="weekly") $interval = 86400*7;
         if ($mode=="monthly") $interval = 86400*30;
+
+        $dir = $this->dir;
+        $metafile = fopen($dir.$id.".meta", 'rb');
+        fseek($metafile,8);
+        $tmp = unpack("I",fread($metafile,4));
+        $feed_interval = $tmp[1];
+        fclose($metafile);
         
         $layer_interval = 0;
-        if ($interval>=600) $layer_interval = 600;
+        if ($feed_interval<600 && $interval>=600) $layer_interval = 600;
         
         //if (!$this->calculate_average($id,600,"onthefly")) {
         global $redis;
-        $redis->rpush("phpfina_average_queue",json_encode(array("id"=>$id, "layer_interval"=>600)));
+        if ($feed_interval<600) $redis->rpush("phpfina_average_queue",json_encode(array("id"=>$id, "layer_interval"=>600)));
         //}
         
         $dir = $this->dir;
@@ -944,6 +958,8 @@ class PHPFina
             }
             return $this->get_data_new($id,$start*1000,$end*1000,$interval,0,0);
         }
+
+        if ($interval<$meta->interval) return array('success'=>false, 'message'=>"Request interval is less than feed data interval");
         
         // $interval = round($interval / $meta->interval) * $meta->interval;
         
@@ -1096,6 +1112,7 @@ class PHPFina
         }
 
         $dp_to_read = $layer_meta->interval / $base_meta->interval;
+        print $layer_meta->interval." ".$base_meta->interval."\n";
 
         $start_time = $layer_meta->start_time + ($layer_npoints*$layer_meta->interval);
         $base_start_pos = ($start_time - $base_meta->start_time) / $base_meta->interval;

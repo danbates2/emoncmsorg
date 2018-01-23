@@ -54,7 +54,6 @@ class Param
         // Decode encrypted parameters
         
         if (isset($_SERVER["CONTENT_TYPE"]) && $_SERVER["CONTENT_TYPE"]=="aes128cbc") {
-        
             // Fetch authorization header
             if (!isset($_SERVER["HTTP_AUTHORIZATION"])) {echo "missing authorization header"; die; }
             $authorization = explode(":",$_SERVER["HTTP_AUTHORIZATION"]);
