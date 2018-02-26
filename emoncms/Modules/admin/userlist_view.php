@@ -37,6 +37,7 @@
     <option value="feeds">Feeds</option>
     <option value="server">Server</option>
     <option value="diskuse" selected>Diskuse</option>
+    <option value="email_verified">Email Verified</option>
   </select>
   
   <select id="order" style="width:120px">
@@ -159,7 +160,15 @@ $("#user-search").click(function(){
 function table_draw() {
   var out = "";
   for (var z in users) {
-      out += "<tr>";
+  
+      var email_verified = users[z].email_verified*1;
+  
+      if (email_verified) {
+          
+          out += "<tr style='background-color:rgba(0,255,0,0.2)'>";
+      } else {
+          out += "<tr>";
+      }
       out += "<td><a href='../admin/setuser.json?id="+users[z].id+"'>"+users[z].id+"</a></td>";
       out += "<td>"+users[z].username+"</td>";
       out += "<td>"+users[z].email+"</td>";

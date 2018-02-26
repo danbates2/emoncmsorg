@@ -1,7 +1,7 @@
 <?php
 
 $schema['users'] = array(
-    'id' => array('type' => 'int(11)', 'Null'=>'NO', 'Key'=>'PRI', 'Extra'=>'auto_increment'),
+    'id' => array('type' => 'int(11)', 'Null'=>false, 'Key'=>'PRI', 'Extra'=>'auto_increment'),
     'username' => array('type' => 'varchar(30)'),
     'email' => array('type' => 'varchar(40)'),
     'password' => array('type' => 'varchar(64)'),
@@ -9,7 +9,7 @@ $schema['users'] = array(
     'apikey_write' => array('type' => 'varchar(64)'),
     'apikey_read' => array('type' => 'varchar(64)'),
     'lastlogin' => array('type' => 'datetime'),
-    'admin' => array('type' => 'int(11)', 'Null'=>'NO'),
+    'admin' => array('type' => 'int(11)', 'Null'=>false),
 
     // User profile fields
     'gravatar' => array('type' => 'varchar(30)', 'default'=>''),
@@ -18,7 +18,7 @@ $schema['users'] = array(
     'timezone' => array('type'=>'varchar(64)', 'default'=>'UTC'),
     'language' => array('type' => 'varchar(5)', 'default'=>'en_EN'),
     'bio' => array('type' => 'text', 'default'=>''),
-    'tags' => array('type' => 'text'),
+    'tags' => array('type' => 'text', 'Null'=>true),
     'startingpage' => array('type'=>'varchar(64)', 'default'=>'feed/list'),
     
     // Usage 
@@ -27,15 +27,21 @@ $schema['users'] = array(
     'phptimeseries'=> array('type' => 'int(11)'),
     'phpfina'=> array('type' => 'int(11)'),
     
-    'server0'=> array('type' => 'int(11)'),
-    //'server1'=> array('type' => 'int(11)'),
-    //'server2'=> array('type' => 'int(11)'),
+    'server0'=> array('type' => 'int(11)', 'default'=>0),
+    //'server1'=> array('type' => 'int(11)', 'default'=>0),
+    //'server2'=> array('type' => 'int(11)', 'default'=>0),
     
     'inputs'=> array('type' => 'int(11)'),
     'activeinputs'=> array('type' => 'int(11)'),
     'feeds'=> array('type' => 'int(11)'),
     'activefeeds'=> array('type' => 'int(11)'),
-    'diskuse' => array('type' => 'bigint(20)')
+    'diskuse' => array('type' => 'bigint(20)'),
+
+    'email_verified' => array('type' => 'int(11)', 'default'=>0),
+    'verification_key' => array('type' => 'varchar(64)', 'default'=>''),
+    
+    'feedhours' => array('type' => 'int(11) unsigned'),
+    'totalcredit' => array('type' => 'decimal(10,2)')
 );
 
 $schema['rememberme'] = array(

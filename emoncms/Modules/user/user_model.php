@@ -17,14 +17,16 @@ class User
     private $mysqli;
     private $rememberme;
     private $enable_rememberme = false;
+    private $email_verification = false;
     private $redis;
     private $log;
 
     public function __construct($mysqli,$redis,$rememberme)
     {
         //copy the settings value, otherwise the enable_rememberme will always be false.
-        global $enable_rememberme;
+        global $enable_rememberme, $email_verification;
         $this->enable_rememberme = $enable_rememberme;
+        $this->email_verification = $email_verification;
 
         $this->mysqli = $mysqli;
         $this->rememberme = $rememberme;
@@ -190,6 +192,7 @@ class User
         if (isset($_SESSION['startingpage'])) $session['startingpage'] = $_SESSION['startingpage']; else $session['startingpage'] = '';
         if (isset($_SESSION['username'])) $session['username'] = $_SESSION['username']; else $session['username'] = 'REMEMBER_ME';
         if (isset($_SESSION['cookielogin'])) $session['cookielogin'] = $_SESSION['cookielogin']; else $session['cookielogin'] = 0;
+        if (isset($_SESSION['emailverified'])) $session['emailverified'] = $_SESSION['emailverified'];
 
         return $session;
     }
@@ -216,7 +219,7 @@ class User
         $apikey_write = md5(uniqid(mt_rand(), true));
         $apikey_read = md5(uniqid(mt_rand(), true));
 
-        $stmt = $this->mysqli->prepare("INSERT INTO users ( username, password, email, salt ,apikey_read, apikey_write, admin ) VALUES (?,?,?,?,?,?,0)");
+        $stmt = $this->mysqli->prepare("INSERT INTO users ( username, password, email, salt ,apikey_read, apikey_write, admin) VALUES (?,?,?,?,?,?,0)");
         $stmt->bind_param("ssssss", $username, $password, $email, $salt, $apikey_read, $apikey_write);
         if (!$stmt->execute()) {
             $stmt->close();
@@ -226,9 +229,85 @@ class User
         // Make the first user an admin
         $userid = $this->mysqli->insert_id;
         if ($userid == 1) $this->mysqli->query("UPDATE users SET admin = 1 WHERE id = '1'");
-
         $stmt->close();
-        return array('success'=>true, 'userid'=>$userid, 'apikey_read'=>$apikey_read, 'apikey_write'=>$apikey_write);
+        
+        // Email verification
+        if ($this->email_verification) {
+            $result = $this->send_verification_email($username);
+            if ($result['success']) return array('success'=>true, 'verifyemail'=>true, 'message'=>"Email verification email sent, please check your inbox");
+        } else {
+            return array('success'=>true, 'verifyemail'=>false, 'userid'=>$userid, 'apikey_read'=>$apikey_read, 'apikey_write'=>$apikey_write);
+        }        
+    }
+    
+    public function send_verification_email($username)
+    {
+        // check for valid username format
+        if (preg_replace('/[^\p{N}\p{L}_\s-]/u','',$username)!=$username) return array('success'=>false, 'message'=>_("Invalid username"));
+
+        // check that username exists and load email and verification status
+        if (!$stmt = $this->mysqli->prepare("SELECT id,email,email_verified FROM users WHERE username=?")) {
+            return array('success'=>false, 'message'=>_("Database error, you may need to run database update"));
+        }
+        $stmt->bind_param("s",$username);
+        $stmt->execute();
+        
+        $stmt->bind_result($id,$email,$email_verified);
+        $result = $stmt->fetch();
+        $stmt->close();
+        
+        // exit if user does not exist
+        if (!$result || $id<1) return array('success'=>false, 'message'=>_("Username does not exist"));
+        // exit if account is already verified
+        if ($email_verified) return array('success'=>false, 'message'=>_("Email already verified"));
+        
+        // Create new verification key
+        $verification_key = md5(uniqid(mt_rand(), true));
+        // Save new verification key
+        $stmt = $this->mysqli->prepare("UPDATE users SET verification_key=? WHERE id=?");
+        $stmt->bind_param("si",$verification_key,$id);
+        $stmt->execute();
+        $stmt->close();
+        
+        // Send verification email
+        global $path;
+        $verification_link = $path."user/verify?email=$email&key=$verification_key";
+        
+        $this->redis->rpush("emailqueue",json_encode(array(
+            "emailto"=>$email,
+            "type"=>"passwordrecovery",
+            "subject"=>'Emoncms email verification',
+            "message"=>"<p>To complete emoncms registration please verify your email by following this link: <a href='$verification_link'>$verification_link</a></p>"
+        )));
+        
+        return array('success'=>true, 'message'=>_("Email verification email sent, please check your inbox"));
+    }
+    
+    public function verify_email($email,$verification_key)
+    {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return array('success'=>false, 'message'=>_("Email address format error"));
+        if (strlen($verification_key)!=32) return array('success'=>false, 'message'=>_("Invalid verification key"));
+        
+        $stmt = $this->mysqli->prepare("SELECT id,email_verified FROM users WHERE email=? AND verification_key=?");
+        $stmt->bind_param("ss",$email,$verification_key);
+        $stmt->execute();
+        $stmt->bind_result($id,$email_verified);
+        $result = $stmt->fetch();
+        $stmt->close();
+        
+        if ($result && $id>0) {
+            if ($email_verified==0) {
+                $stmt = $this->mysqli->prepare("UPDATE users SET email_verified='1' WHERE id=?");
+                $stmt->bind_param("i",$id);
+                $stmt->execute();
+                $stmt->close();
+                return array('success'=>true, 'message'=>"Email verified");
+            } else {
+                return array('success'=>false, 'message'=>"Email already verified");
+            }
+        }
+        
+        return array('success'=>false, 'message'=>"Invalid email or verification key");
     }
 
     public function login($username, $password, $remembermecheck)
@@ -245,19 +324,22 @@ class User
 
         // 28/04/17: Changed explicitly stated fields to load all with * in order to access startingpage
         // without cuasing an error if it has not yet been created in the database.
-        $stmt = $this->mysqli->prepare("SELECT id,password,salt,apikey_write,admin,language,startingpage FROM users WHERE username=?");
+        if (!$stmt = $this->mysqli->prepare("SELECT id,password,salt,apikey_write,admin,language,startingpage,email_verified FROM users WHERE username=?")) {
+            return array('success'=>false, 'message'=>_("Database error, you may need to run database update"));
+        }
         $stmt->bind_param("s",$username);
         $stmt->execute();
         
-        $stmt->bind_result($userData_id,$userData_password,$userData_salt,$userData_apikey_write,$userData_admin,$userData_language,$userData_startingpage);
+        $stmt->bind_result($userData_id,$userData_password,$userData_salt,$userData_apikey_write,$userData_admin,$userData_language,$userData_startingpage,$email_verified);
         $result = $stmt->fetch();
         $stmt->close();
         
         //$result = $stmt->get_result();
         //$userData = $result->fetch_object();
         //$stmt->close();
-
+        
         if (!$result) return array('success'=>false, 'message'=>_("Username does not exist"));
+        // if ($this->email_verification && !$email_verified) return array('success'=>false, 'message'=>_("Please verify email address"));
         
         $hash = hash('sha256', $userData_salt . hash('sha256', $password));
 
@@ -274,6 +356,7 @@ class User
             $_SESSION['write'] = 1;
             $_SESSION['admin'] = $userData_admin;
             $_SESSION['lang'] = $userData_language;
+            $_SESSION['emailverified'] = $email_verified;
             if (isset($userData_startingpage)) $_SESSION['startingpage'] = $userData_startingpage;
                             
             if ($this->enable_rememberme) {
@@ -447,6 +530,16 @@ class User
         $stmt->bind_param("si", $email, $userid);
         $stmt->execute();
         $stmt->close();
+
+        $stmt = $this->mysqli->prepare("UPDATE users SET email_verified='0' WHERE id = ?");
+        $stmt->bind_param("i", $userid);
+        $stmt->execute();
+        $stmt->close();
+        
+        global $session;
+        $session['emailverified'] = 0;
+        $_SESSION['emailverified'] = 0;
+        
         return array('success'=>true, 'message'=>_("Email updated"));
     }
 

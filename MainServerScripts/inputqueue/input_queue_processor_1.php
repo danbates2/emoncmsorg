@@ -38,7 +38,9 @@
     $mysqli = new mysqli($server,$username,$password,$database);
 
     $redis = new Redis();
+    $redis_server = '/var/run/redis/redis.sock';
     $connected = $redis->connect($redis_server);
+    if (!$connected) die;
 
     require("Modules/user/user_model.php");
     $user = new User($mysqli,$redis,null);
@@ -100,17 +102,28 @@
             $dbinputs = $input->get_inputs($userid);
             $validate_access = $input->validate_access($dbinputs, $nodeid);
             
+            // max input limit
+            $icount=0;
+            foreach ($dbinputs as $node=>$inputs)
+                foreach ($inputs as $inp) $icount++;
+            
             if ($validate_access)
             {
                 $tmp = array();
-
+                $timevalues = array();
+                
                 foreach ($data as $name => $value)
                 {            
                     if (!isset($dbinputs[$nodeid][$name])) {
-                        $inputid = $input->create_input($userid, $nodeid, $name);
-                        if ($inputid>0) {
-                            $dbinputs[$nodeid][$name] = array('id'=>$inputid);
-                            $input->set_timevalue($dbinputs[$nodeid][$name]['id'],$time,$value);
+                        if ($icount<1000) {
+                            $inputid = $input->create_input($userid, $nodeid, $name);
+                            if ($inputid>0) {
+                                $dbinputs[$nodeid][$name] = array('id'=>$inputid);
+                                $timevalues[] = array('id'=>$dbinputs[$nodeid][$name]['id'],'time'=>$time,'value'=>$value);
+                                $icount++;
+                            }
+                        } else {
+                            error_log("max inputs: u:$userid n:$nodeid i:$name");
                         }
                     } else {
                         $inputid = $dbinputs[$nodeid][$name]['id'];
@@ -119,7 +132,7 @@
                         if (($time-$lasttime)>=4)
                         {
                             $inputlimiter[$inputid] = $time;
-                            $input->set_timevalue($dbinputs[$nodeid][$name]['id'],$time,$value);
+                            $timevalues[] = array('id'=>$dbinputs[$nodeid][$name]['id'],'time'=>$time,'value'=>$value);
                             if ($dbinputs[$nodeid][$name]['processList']) {
                                 $tmp[] = array('value'=>$value,'processList'=>$dbinputs[$nodeid][$name]['processList']);
                             }
@@ -128,6 +141,10 @@
                         }
                     }
                 }
+                
+                $pipe = $redis->multi(Redis::PIPELINE);
+                foreach ($timevalues as $i) $redis->hMset("input:lastvalue:".$i['id'], array('value' => $i['value'], 'time' => $i['time']));
+                $pipe->exec();
                 
                 foreach ($tmp as $i) $process->input($time,$i['value'],$i['processList']);
             }

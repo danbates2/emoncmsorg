@@ -15,6 +15,8 @@
 
   include "Modules/feed/feed_model.php";
   $feed = new Feed($mysqli,$redis, $feed_settings);
+        
+  // $keys = $redis->keys("feed:lastvalue:*");
   
   $now = time();
   

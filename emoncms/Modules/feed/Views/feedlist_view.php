@@ -1,8 +1,9 @@
 <?php
     global $path;
+    $version = 1;
 ?>
-<script type="text/javascript" src="<?php echo $path; ?>Modules/user/user.js"></script>
-<script type="text/javascript" src="<?php echo $path; ?>Modules/feed/feed.js"></script>
+<script type="text/javascript" src="<?php echo $path; ?>Modules/user/user.js?ver=<?php echo $version; ?>"></script>
+<script type="text/javascript" src="<?php echo $path; ?>Modules/feed/feed.js?ver=<?php echo $version; ?>"></script>
 <script type="text/javascript" src="<?php echo $path; ?>Lib/tablejs/table.1.js"></script>
 <script type="text/javascript" src="<?php echo $path; ?>Lib/tablejs/custom-table-fields.js"></script>
 <link href="<?php echo $path; ?>Lib/bootstrap-datetimepicker-0.0.11/css/bootstrap-datetimepicker.min.css" rel="stylesheet">

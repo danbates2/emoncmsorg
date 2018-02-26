@@ -9,7 +9,7 @@
   Part of the OpenEnergyMonitor project:
   http://openenergymonitor.org
   */
-  global $ltime,$path,$fullwidth,$menucollapses,$emoncms_version,$theme;
+  global $ltime,$path,$fullwidth,$menucollapses,$emoncms_version,$theme,$verify;
   
   $themecolor = "standard";
 ?>
@@ -95,6 +95,14 @@
         </div>
 
         <div id="topspacer"></div>
+        
+        <!--<div style="background-color:#f3a48b; color:#fff; padding:10px;">Emoncms.org will be offline between 9:45am and 10:45am today, see <a href="https://community.openenergymonitor.org/t/emoncms-org-downtime-tomorrow-17th-october/5371">forum thread</a></div>-->
+
+        <?php if (isset($session['emailverified']) && !$session['emailverified']) { ?>
+        <div id="verifymessage" style="background-color:#209ed3; color:#fff; padding:10px;"><i class="icon-exclamation-sign icon-white"></i> Your account email address is not verified. <span style="color:rgba(255,255,255,0.8)">You can amend your email address on the account page.</span><button id="send-verification-email" class="btn btn-small" style="float:right; margin-top:-2px">Request or re-send verification email</button></div>
+        <?php } else if (isset($verify)) { ?>
+        <div id="verifymessage" style="background-color:#209ed3; color:#fff; padding:10px;"><?php echo $verify['message']; ?></div>
+        <?php } ?>
 
         <?php if (isset($submenu) && ($submenu)) { ?>
           <div id="submenu">
@@ -130,4 +138,20 @@
         </div>
         <script type="text/javascript" src="<?php echo $path; ?>Lib/bootstrap/js/bootstrap.js"></script>
     </body>
+    
+    <?php if (isset($session['emailverified']) && !$session['emailverified']) { ?>
+    <script>
+    $("#send-verification-email").click(function(){
+        
+        $.ajax({
+          url: "<?php echo $path; ?>user/resend-verify.json",
+          data: "&username="+encodeURIComponent("<?php echo $session['username']; ?>"),
+          dataType: "json",
+          success: function(result) {
+              $("#verifymessage").html(result.message);
+          } 
+        });
+    });
+    </script>
+    <?php } ?>
 </html>

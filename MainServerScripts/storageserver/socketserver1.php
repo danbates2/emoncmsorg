@@ -4,7 +4,9 @@ $fp = fopen("socketserver1lock", "w");
 if (! flock($fp, LOCK_EX | LOCK_NB)) { echo "Already running\n"; die; }
 
 $redis = new Redis();
-$redis->connect("127.0.0.1");
+$redis_server = '/var/run/redis/redis.sock';
+$connected = $redis->connect($redis_server);
+if (!$connected) die;
 
 $server = stream_socket_server("tcp://0.0.0.0:PORT", $errno, $errorMessage);
 
@@ -14,6 +16,8 @@ if ($server === false) {
 
 $usleep = 0;
 $ltime = time();
+
+$count = 0;
 
 while (true)
 {
@@ -33,16 +37,22 @@ while (true)
                 if ($redis->get('socketserver1-stop')==1) {
                     $redis->set('socketserver1-stop',0);
                     die;
-                }  
+                }
+
+                $redis->incr("socketserver1-count",$count);
+                $redis->incr("SS1:count",$count);
+                $count = 0;
             }
         
-            if ($redis->llen('feedpostqueue:1')>0)
+            if ($redis->llen('feedpostqueue:1')>10)
             {
-                $line = $redis->lpop("feedpostqueue:1");
-                $redis->incr("socketserver1-count");
-                $redis->incr("SS1:count");
+                $lines = "";
+                for ($i=0; $i<10; $i++) {
+                    $lines .= $redis->lpop("feedpostqueue:1")."\n";
+                    $count ++;
+                }
 
-                $result = fwrite($client,$line."\n");
+                $result = fwrite($client,$lines);
                 if (!$result) {
 	    	            $client = false;
                     print "client disconnected\n";

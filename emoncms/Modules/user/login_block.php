@@ -12,99 +12,152 @@
 // no direct access
 defined('EMONCMS_EXEC') or die('Restricted access');
 
-global $path, $allowusersregister, $enable_rememberme, $enable_password_reset;
+global $path, $allowusersregister, $enable_rememberme, $enable_password_reset, $theme;
 
 ?>
+<style>
+  .main {
+    max-width: 380px;
+    margin: 0 auto;
+    padding: 10px;
+  }
+  
+</style>
+<script type="text/javascript" src="<?php echo $path; ?>Modules/user/user.js?v=1"></script>
+<br>
 
-<script type="text/javascript" src="<?php echo $path; ?>Modules/user/user.js"></script>
 
-<div style="margin: 0px auto; max-width:392px; padding:10px;">
-    <div style="max-width:392px; margin-right:20px; padding-top:45px; padding-bottom:15px; color: #888;">
-        <img style="margin:12px;" src="<?php echo $path; ?>Theme/basic/emoncms_logo.png" width="256" height="46" />
+
+
+<div class="main">
+  <div class="well">
+    <div style="margin-top:10px; margin-bottom:10px">
+    <img src="<?php echo $path; ?>Theme/<?php echo $theme; ?>/logo_login.png" alt="Login" width="256" height="46" />
     </div>
-
+        
     <div class="login-container">
+        <div id="login-form">
+            <div id="loginblock">
 
-        <div id="login-form"  class="well" style="text-align:left">
-            <p>
-                <?php echo _('Username:'); ?><br/>
-                <input type="text" tabindex="1" name="username" style="width:94%"/>
-            </p>
-
-            <p class="register-item" style="display:none">
-                <?php echo _('Email:'); ?>
-                <input type="text" name="email" style="width:94%" tabindex="2"/>
-            </p>
-
-            <p>
-                <?php echo _('Password:'); ?><br/>
-                <input type="password" tabindex="3" name="password" style="width:94%"/>
-            </p>
-
-            <p class="register-item" style="display:none">
-                <?php echo _('Confirm password:'); ?><br/>
-                <input type="password" name="confirm-password" style="width:94%" tabindex="4"/>
-            </p>
-
-            <div id="error" class="alert alert-error" style="display:none;"></div>
-
-            <p class="login-item">
-                <?php if ($enable_rememberme) { ?><label class="checkbox"><input type="checkbox" tabindex="5" id="rememberme" value="1" name="rememberme"><?php echo '&nbsp;'._('Remember me'); ?></label><br /><?php } ?>
-                <button id="login" class="btn btn-primary" tabindex="6" type="button"><?php echo _('Login'); ?></button>
-                <?php if ($allowusersregister) { echo '&nbsp;'._('or').'&nbsp;' ?><a id="register-link"  href="#"><?php echo _('register'); ?></a><?php } ?>
-            </p>
-
-            <p class="register-item" style="display:none">
-                <button id="register" class="btn btn-primary" type="button"><?php echo _('Register'); ?></button> <?php echo '&nbsp;'._('or').'&nbsp;' ?>
-                <a id="cancel-link" href="#"><?php echo _('cancel'); ?></a>
-            </p>
-
-            <p><a id="passwordreset-link" href="#" >Forgotten password</a></p>
-            
-            <div id="passwordreset-block" style="display:none">
-                <hr>
-                <div id="passwordreset-message"></div>
-                <div id="passwordreset-input">
-                <p style="color:#888; font-size:12px">Enter account name:</p>
-                <input id="passwordreset-username" type="text" /><br>
-                <p style="color:#888; font-size:12px">Enter account email address:</p>
-                <input id="passwordreset-email" type="text" /><br>
-                <button id="passwordreset-submit" class="btn">Submit</button>
+                <div class="form-group">
+                    <label><?php echo _('Username'); ?>
+                        <input type="text" tabindex="1" autocomplete="on" name="username"  />
+                    </label>
+                </div>
+                
+                <div class="form-group register-item" style="display:none">
+                    <label><?php echo _('Email'); ?>
+                        <input type="text" name="email" tabindex="2"/>
+                    </label>
                 </div>
 
-            </div>
-        </div>
+                <div class="form-group">
+                    <label><?php echo _('Password'); ?>
+                        <input type="password" tabindex="3" autocomplete="on" name="password" />
+                    </label>
+                </div>
 
+                <div class="form-group register-item" style="display:none">
+                    <label><?php echo _('Confirm password'); ?>
+                        <input id="confirm-password" type="password" name="confirm-password" tabindex="4"/>
+                    </label>
+                </div>
+
+                <div id="loginmessage"></div>
+
+                <div class="form-group login-item">
+                    <?php if ($enable_rememberme) { ?>
+                        <div class="checkbox" style="padding-bottom:10px">
+                            <label>
+                                <input type="checkbox" tabindex="5" id="rememberme" value="1" name="rememberme" style="margin-top:1px"><?php echo '&nbsp;'._('Remember me'); ?>
+                            </label>
+                        </div>
+                    <?php } ?>
+                    <button id="login" class="btn btn-primary" tabindex="6" type="submit"><?php echo _('Login'); ?></button>
+                    <?php if ($allowusersregister) { echo '&nbsp;'._('or').'&nbsp;' ?>
+                        <a id="register-link" href="#"><?php echo _('register'); ?></a>
+                    <?php } ?>
+                </div>
+
+                <div class="form-group register-item" style="display:none">
+                    <button id="register" class="btn btn-primary" type="button"><?php echo _('Register'); ?></button>
+                    <?php echo '&nbsp;'._('or').'&nbsp;' ?>
+                    <a id="cancel-link" href="#"><?php echo _('login'); ?></a>
+                </div>
+                
+                <div style="padding-top:10px">
+                <a id="passwordreset-link" href="#"><i class="icon-question-sign"></i> Forgotten password?</a></div>
+
+            </div>
+
+            <div id="passwordresetblock" class="collapse">
+                <div class="form-group">
+                    <label>Username
+                        <input id="passwordreset-username" type="text" />
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Email address
+                        <input id="passwordreset-email" type="text" />
+                    </label>
+                </div>
+                <button id="passwordreset-submit" class="btn btn-primary" type="button">Recover</button>
+                <?php echo '&nbsp;'._('or').'&nbsp;' ?>
+                <a id="passwordreset-link-cancel" href="#"><?php echo _('login'); ?></a>
+            </div>
+            <div id="passwordresetmessage"></div>
+        </div>
     </div>
+  </div>
 </div>
 
 <script>
+"use strict";
 
 var path = "<?php echo $path; ?>";
+var verify = <?php echo json_encode($verify); ?>;
 var register_open = false;
-var passwordreset = "<?php echo $enable_password_reset; ?>";
+$("body").addClass("body-login");
 
-if (!passwordreset) $("#passwordreset-link").hide();
+if (verify.success!=undefined) {
+    if (verify.success) {
+        $("#loginmessage").html("<div class='alert alert-success'> "+verify.message+"</div>");
+    } else {
+        $("#loginmessage").html("<div class='alert alert-error'> "+verify.message+"</div>");
+    }
+}
 
-$("#passwordreset-link").click(function(){
-    $("#passwordreset-block").show();
-    $("#passwordreset-input").show();
-    $("#passwordreset-message").html("");
+
+$(document).ready(function() {
+    var passwordreset = "<?php echo $enable_password_reset; ?>";
+    if (!passwordreset) $("#passwordreset-link").hide();
+});
+
+$("#passwordreset-link").on("click", function(){
+        $("#passwordresetblock").collapse('show');
+        $("#loginblock").collapse('hide');
+        $("#passwordresetmessage").html("");
+});
+
+$("#passwordreset-link-cancel").on("click", function(){
+        $("#passwordresetblock").collapse('hide');
+        $("#loginblock").collapse('show');
+        $("#loginmessage").html("");
 });
 
 $("#passwordreset-submit").click(function(){
     var username = $("#passwordreset-username").val();
     var email = $("#passwordreset-email").val();
-    
-    if (email=="" || username=="") {
-        alert("Please enter username and email address");
+
+    if (email==="" || username==="") {
+        $("#passwordresetmessage").html("<div>&nbsp;</div><div class='alert alert-error'>Please enter username and email address</div>");
     } else {
         var result = user.passwordreset(username,email);
-        if (result.success==true) {
-            $("#passwordreset-message").html("<div class='alert alert-success'>"+result.message+"</div>");
-            $("#passwordreset-input").hide();
+        if (result.success===true) {
+            $("#passwordresetmessage").html("<div>&nbsp;</div><div class='alert alert-success'>"+result.message+"</div>");
+            $("#passwordresetblock").hide();
         } else {
-            $("#passwordreset-message").html("<div class='alert alert-error'>"+result.message+"</div>");
+            $("#passwordresetmessage").html("<div>&nbsp;</div><div class='alert alert-error'>"+result.message+"</div>");
         }
     }
 });
@@ -112,7 +165,7 @@ $("#passwordreset-submit").click(function(){
 $("#register-link").click(function(){
     $(".login-item").hide();
     $(".register-item").show();
-    $("#error").hide();
+    $("#loginmessage").html("");
     register_open = true;
     return false;
 });
@@ -120,15 +173,15 @@ $("#register-link").click(function(){
 $("#cancel-link").click(function(){
     $(".login-item").show();
     $(".register-item").hide();
-    $("#error").hide();
+    $("#loginmessage").html("");
     register_open = false;
     return false;
 });
 
-$("input").keypress(function(event) {
+$('input').on('keypress', function(e) {
     //login or register when pressing enter
-    if (event.which == 13) {
-        event.preventDefault();
+    if (e.which == 13) {
+        e.preventDefault();
         if ( register_open ) {
             register();
         } else {
@@ -137,6 +190,11 @@ $("input").keypress(function(event) {
     }
 });
 
+$('#login').click(function() { login(); });
+$('#register').click(function() { register(); });
+
+$("#loginmessage").on("click", ".resend-verify", function(){ resend_verify(); });
+
 function login(){
     var username = $("input[name='username']").val();
     var password = $("input[name='password']").val();
@@ -144,13 +202,25 @@ function login(){
 
     var result = user.login(username,password,rememberme);
 
-    if (result.success)
-    {
-        window.location.href = path+"feed/list";
-    }
-    else
-    {
-        $("#error").html(result.message).show();
+    if (result.success==undefined) {
+        $("#loginmessage").html("<div class='alert alert-error'>"+result+"</div>");
+        return false;
+    
+    } else {
+        if (result.success)
+        {
+            window.location.href = path+result.startingpage;
+            return true;
+        }
+        else
+        {
+            if (result.message=="Please verify email address") {
+                $("#loginmessage").html("<div class='alert alert-error'>"+result.message+"<br><br><button class='btn resend-verify' style='float:right'>Resend</button>Click to resend<br>verification email:</div>");
+            } else {
+                $("#loginmessage").html("<div class='alert alert-error'>"+result.message+"</div>");
+            }
+            return false;
+        }
     }
 }
 
@@ -162,30 +232,50 @@ function register(){
 
     if (password != confirmpassword)
     {
-        $("#error").html("Passwords do not match").show();
+        $("#loginmessage").html("<div class='alert alert-error'>Passwords do not match</div>");
     }
     else
     {
         var result = user.register(username,password,email);
 
-        if (result.success)
-        {
-            var result = user.login(username,password);
-            if (result.success)
-            {
-                window.location.href = path+"user/view";
+        if (result.success==undefined) {
+            $("#loginmessage").html("<div class='alert alert-error'>"+result+"</div>");
+            return false;
+        
+        } else {
+            if (result.success) {
+                if (result.verifyemail) {
+                    $(".login-item").show();
+                    $(".register-item").hide();
+                    $("#loginmessage").html("");
+                    register_open = false;
+                    $("#loginmessage").html("<div class='alert alert-success'>"+result.message+"</div>");
+                } else {
+                    login();
+                }
+                
+            } else {
+                $("#loginmessage").html("<div class='alert alert-error'>"+result.message+"</div>");
             }
-        }
-        else
-        {
-            $("#error").html(result.message).show();
         }
     }
 }
 
-$("#login").click(login);
-$("#register").click(register);
-
-
+function resend_verify()
+{
+    var username = $("input[name='username']").val();
+    
+    $.ajax({
+      url: path+"user/resend-verify.json",
+      data: "&username="+encodeURIComponent(username),
+      dataType: "json",
+      success: function(result) {
+         if (result.success) {
+             $("#loginmessage").html("<div class='alert alert-success'>"+result.message+"</div>");
+         } else {
+             $("#loginmessage").html("<div class='alert alert-error'>"+result.message+"</div>");
+         }
+      } 
+    });
+}
 </script>
-

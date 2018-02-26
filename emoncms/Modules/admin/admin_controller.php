@@ -83,6 +83,7 @@ function admin_controller()
                 if ($_GET['orderby']=="lastactive") $orderby = "lastactive";
                 if ($_GET['orderby']=="activefeeds") $orderby = "activefeeds";
                 if ($_GET['orderby']=="feeds") $orderby = "feeds";
+                if ($_GET['orderby']=="email_verified") $orderby = "email_verified";
             }
             
             $order = "DESC";
@@ -103,7 +104,7 @@ function admin_controller()
             }
         
             $data = array();
-            $result = $mysqli->query("SELECT id,username,email,diskuse,inputs,activefeeds,feeds,phptimeseries,phpfina,server0,lastactive FROM users $searchstr ORDER BY $orderby $order ".$limit);
+            $result = $mysqli->query("SELECT id,username,email,diskuse,inputs,activefeeds,feeds,phptimeseries,phpfina,server0,email_verified,lastactive FROM users $searchstr ORDER BY $orderby $order ".$limit);
             
             while ($row = $result->fetch_object()) {
                 $userid = $row->id;

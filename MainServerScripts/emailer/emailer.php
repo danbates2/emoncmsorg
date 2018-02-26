@@ -35,11 +35,13 @@ while(true)
         $transport = Swift_SmtpTransport::newInstance($smtp_email_settings['host'], $smtp_email_settings['port'], 'ssl')
         ->setUsername($smtp_email_settings['username'])->setPassword($smtp_email_settings['password']);
 
+        $emailsto = explode(",",$email->emailto);
+
         $mailer = Swift_Mailer::newInstance($transport);
         $message = Swift_Message::newInstance()
           ->setSubject($email->subject)
           ->setFrom($smtp_email_settings['from'])
-          ->setTo(array($email->emailto))
+          ->setTo($emailsto)
           ->setBody($email->message, 'text/html');
         $result = $mailer->send($message);
         

@@ -169,10 +169,15 @@ class Input
     public function get_inputs($userid)
     {
         $userid = (int) $userid;
-        if (!$this->redis->exists("user:inputs:$userid")) $this->load_to_redis($userid);
+        // if (!$this->redis->exists("user:inputs:$userid")) $this->load_to_redis($userid);
 
         $dbinputs = array();
         $inputids = $this->redis->sMembers("user:inputs:$userid");
+        
+        if ($inputids==null) {
+            $this->load_to_redis($userid);
+            $inputids = $this->redis->sMembers("user:inputs:$userid");
+        }
 
         $pipe = $this->redis->multi(Redis::PIPELINE);
         foreach ($inputids as $id) $row = $this->redis->hGetAll("input:$id");
@@ -327,6 +332,46 @@ class Input
             }
         }
         return "Deleted $n inputs";
+    }
+    
+    public function clean_processlist_feeds($process_class,$userid) 
+    {
+        $processes = $process_class->get_process_list();
+        $out = "";
+        $userid = (int) $userid;
+        $result = $this->mysqli->query("SELECT id, processList FROM input WHERE `userid`='$userid'");
+        while ($row = $result->fetch_object())
+        {
+            $inputid = $row->id;
+            $processlist = $row->processList;
+            $pairs = explode(",",$processlist);
+
+            $pairsout = array();
+            for ($i=0; $i<count($pairs); $i++)
+            {
+                $valid = true;
+                $keyarg = explode(":",$pairs[$i]);
+                if (count($keyarg)==2) {
+                    $key = (int) $keyarg[0];
+                    $arg = $keyarg[1];
+
+                    if ($processes[$key][1] == ProcessArg::FEEDID) {
+                        if (!$this->feed->exist($arg)) $valid = false;
+                    }
+                } else {
+                    $valid = false;
+                }
+                if ($valid) $pairsout[] = $pairs[$i];
+            }
+            $processlist_after = implode(",",$pairsout);
+
+            if ($processlist_after!=$processlist) {
+                $this->redis->hset("input:$inputid",'processList',$processlist_after);
+                $this->mysqli->query("UPDATE input SET processList = '$processlist_after' WHERE id='$inputid'");
+                $out .= "processlist for input $inputid changed from $processlist to $processlist_after\n";
+            }
+        }
+        return $out;
     }
 
     // -----------------------------------------------------------------------------------------

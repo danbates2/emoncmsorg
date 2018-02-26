@@ -15,7 +15,9 @@ http://openenergymonitor.org
 define('EMONCMS_EXEC', 1);
 
 $redis = new Redis();
-$connected = $redis->connect("127.0.0.1");
+$redis_server = '/var/run/redis/redis.sock';
+$connected = $redis->connect($redis_server);
+if (!$connected) die;
 
 error_reporting(E_ALL);
 ini_set('display_errors', 'on');
@@ -37,6 +39,8 @@ $phptimeseries = new PHPTimeSeries($feed_settings['phpfina']);
 $usleep = 0;
 $ltime = time();
 
+$count = 0;
+
 while(true)
 {
 
@@ -50,32 +54,38 @@ while(true)
             $redis->set('storageserver0-stop',0);
             die;
         }  
+        $redis->incr("storageserver0-count",$count);
+        $redis->incr("SS0:count",$count);
+        $count = 0;
     }
 
-    if ($redis->llen('feedpostqueue:0')>0)
+    if ($redis->llen('feedpostqueue:0')>10)
     {
-        $line = $redis->lpop("feedpostqueue:0");
-        $redis->incr("storageserver0-count");
-        $redis->incr("SS0:count");
-        $d = explode(",",$line);
+        for ($i=0; $i<10; $i++)
+        {
+            $line = $redis->lpop("feedpostqueue:0");
+            $count ++;
+            
+            $d = explode(",",$line);
 
-        if (count($d)==5) {
-            $id = (int) $d[0];
-            $time = (int) $d[1];
-            $value = (float) $d[2];
-            $engine = (int) $d[3][0];
-            $padding_mode = (int) $d[4][0];
-            
-            // print "$id,$time,$value,$engine,$padding_mode\n";
-            
-            if ($engine==5) {
-                if ($padding_mode==1) $phpfina->padding_mode = "join";
-                $phpfina->post($id,$time,$value);
-                if ($padding_mode==1) $phpfina->padding_mode = "nan";
-            }
-            
-            if ($engine==2) {
-                $phptimeseries->post($id,$time,$value);
+            if (count($d)==5) {
+                $id = (int) $d[0];
+                $time = (int) $d[1];
+                $value = (float) $d[2];
+                $engine = (int) $d[3][0];
+                $padding_mode = (int) $d[4][0];
+                
+                // print "$id,$time,$value,$engine,$padding_mode\n";
+                
+                if ($engine==5) {
+                    if ($padding_mode==1) $phpfina->padding_mode = "join";
+                    $phpfina->post($id,$time,$value);
+                    if ($padding_mode==1) $phpfina->padding_mode = "nan";
+                }
+                
+                if ($engine==2) {
+                    $phptimeseries->post($id,$time,$value);
+                }
             }
         }
     }

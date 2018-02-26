@@ -1,5 +1,7 @@
 <?php
 
+  $start = microtime(true);
+
   define('EMONCMS_EXEC', 1);
   
   chdir("/var/www/emoncms");

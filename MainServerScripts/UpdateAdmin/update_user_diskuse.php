@@ -23,6 +23,8 @@
   while ($row = $result->fetch_object()) {
       $userid = $row->id;
       $diskuse = $feed->update_user_feeds_size($userid);
+      // $mysqli->query("UPDATE users SET `diskuse` = '$diskuse' WHERE `id`= '$userid'");
+      
       print $userid." ".$diskuse."\n";
   }
   

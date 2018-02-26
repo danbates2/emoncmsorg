@@ -52,17 +52,19 @@
     }*/
 
     // UNCOMMENT TO PUT THE SITE OFFLINE!!!!!!!!!
-/*
+
+    /*    
     if ($apikey) {
         echo "ok"; die;
     } else if(isset($_SESSION['admin'])) {
 
     } else {
-        //echo file_get_contents("offline.html");
-        //die;
-    }
-*/
+        echo file_get_contents("offline.html");
+        die;
+    }*/
+
     $redis = new Redis();
+    // $redis_server = '/var/run/redis/redis.sock';
     $connected = $redis->connect($redis_server);
     if (!$connected) {
         echo "Can't connect to redis database"; die;
@@ -134,10 +136,16 @@
 
                 $feeds = array();
                 $feedids = $redis->sMembers("user:feeds:$userid");
-                foreach ($feedids as $id)
-                {
-                    $row = $redis->hGetAll("feed:$id");
-                    $lastvalue = $redis->hmget("feed:lastvalue:$id",array('time','value'));
+                $pipe = $redis->multi(Redis::PIPELINE);
+                foreach ($feedids as $id) {
+                    $redis->hGetAll("feed:$id");
+                    $redis->hmget("feed:lastvalue:$id",array('time','value'));
+                }
+                $result = $pipe->exec();
+                
+                for ($i=0; $i<count($result); $i+=2) {
+                    $row = $result[$i];
+                    $lastvalue = $result[$i+1];
                     $row['time'] = strtotime($lastvalue['time']);
                     $row['value'] = $lastvalue['value'];
                     $feeds[] = $row;
@@ -177,6 +185,33 @@
                 die;
             }
         }
+        else if ($_GET['q']=="myip/set.json") {
+            $userid = 0;
+            if ($redis->exists("writeapikey:$apikey")) { $userid = $redis->get("writeapikey:$apikey"); }
+            if ($userid>0) {
+                $ip = getenv("REMOTE_ADDR");
+                
+                // Sanitation (an ip address is integers seperated by .'s)
+                $parts = explode(".",$ip);
+                foreach ($parts as $part) $part = (int) $part;
+                $ip = implode(".",$parts);
+                $redis->set("myip:$userid:ip",$ip);
+                
+                if (isset($_GET['lanip'])){
+                    $parts = explode(".",$_GET['lanip']);
+                    foreach ($parts as $part) $part = (int) $part;
+                    $lanip = implode(".",$parts);
+                    $redis->set("myip:$userid:lanip",$lanip);
+                }
+                
+                $time = time();
+                $redis->set("myip:$userid:time",$time);
+                
+                // Provide verbose output
+                print "IP address set to: $ip";
+                die;
+            }
+        }
         // -------------------
     }
 
@@ -184,7 +219,11 @@
         if (!isset($_GET['q']) || $_GET['q']=="" || $_GET['q']=="user/login") {
             if(!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] == "") {
                 // $redis->incr("httpsredirects");
-                $redirect = "https://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+                if (!isset($_SERVER['HTTP_HOST'])) {
+                    $redirect = "https://emoncms.org";
+                } else {
+                    $redirect = "https://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+                }
                 // header("HTTP/1.1 301 Moved Permanently");
                 header("Location: $redirect");
                 die;
@@ -206,7 +245,8 @@
         }
         die();
     }
-
+    
+    
     if (!$mysqli->connect_error && $dbtest==true) {
         require "Lib/dbschemasetup.php";
         if (!db_check($mysqli,$database)) db_schema_setup($mysqli,load_db_schema(),true);

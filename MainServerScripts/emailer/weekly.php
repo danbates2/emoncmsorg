@@ -30,6 +30,7 @@ while($row = $result->fetch_object()) {
     
     if ($row->weekly==1) {  
         $emailreport = emailreport_generate(array(
+            "title"=>$row->title,
             "email"=>$row->email,
             "feedid"=>$row->feedid,
             "apikey"=>$u->apikey_read,
