@@ -1,300 +1,160 @@
 <?php
-    global $path;
+	global $path;
 ?>
 
 <script type="text/javascript" src="<?php echo $path; ?>Modules/input/Views/input.js"></script>
 <script type="text/javascript" src="<?php echo $path; ?>Lib/tablejs/table.js"></script>
 <script type="text/javascript" src="<?php echo $path; ?>Lib/tablejs/custom-table-fields.js"></script>
-
-<script type="text/javascript" src="<?php echo $path; ?>Modules/input/Views/processlist-r3.js"></script>
-<script type="text/javascript" src="<?php echo $path; ?>Modules/input/Views/process_info-r3.js"></script>
 <script type="text/javascript" src="<?php echo $path; ?>Modules/feed/feed.js"></script>
 
 <style>
-input[type="text"] {
-         width: 88%;
+#table input[type="text"] {
+	width: 88%;
 }
 
 #table td:nth-of-type(1) { width:5%;}
-#table td:nth-of-type(2) { width:10%;}
-#table td:nth-of-type(3) { width:25%;}
-
-#table td:nth-of-type(7) { width:30px; text-align: center; }
-#table td:nth-of-type(8) { width:30px; text-align: center; }
-#table td:nth-of-type(9) { width:30px; text-align: center; }
-
-option.select-hr { border-bottom: 1px dotted #000; }
+#table td:nth-of-type(2) { width:5%;}
+#table td:nth-of-type(3) { width:20%;}
+#table th:nth-of-type(5), td:nth-of-type(5) { text-align: right; }
+#table th:nth-of-type(6), td:nth-of-type(6) { text-align: right; }
+#table th[fieldg="time"] { font-weight:normal; text-align: right; }
+#table th[fieldg="processList"] { font-weight:normal; text-align: left; }
+#table td:nth-of-type(7) { width:14px; text-align: center; }
+#table td:nth-of-type(8) { width:14px; text-align: center; }
+#table td:nth-of-type(9) { width:14px; text-align: center; }
 </style>
 
-<br>
-<div id="apihelphead"><div style="float:right;"><a href="<?php echo $path; ?>input/api"><?php echo _('Input API Help'); ?></a></div></div>
+<div>
+	<div id="apihelphead" style="float:right;"><a href="api"><?php echo _('Input API Help'); ?></a></div>
+	<div id="localheading"><h2><?php echo _('Inputs'); ?></h2></div>
 
-<div class="container">
-    <div id="localheading"><h2><?php echo _('Inputs'); ?></h2></div>
-    
-    <div id="processlist-ui" style="padding:20px; background-color:#efefef; display:none">
-    
-    <div style="font-size:30px; padding-bottom:20px; padding-top:18px"><b><span id="inputname"></span></b> config</div>
-    <p><?php echo _('Input processes are executed sequentially with the result being passed back for further processing by the next processor in the input processing list.'); ?></p>
-    
-        <table class="table">
+	<div id="table"></div>
 
-            <tr>
-                <th style='width:5%;'></th>
-                <th style='width:5%;'><?php echo _('Order'); ?></th>
-                <th><?php echo _('Process'); ?></th>
-                <th><?php echo _('Arg'); ?></th>
-                <th></th>
-                <th><?php echo _('Actions'); ?></th>
-            </tr>
-
-            <tbody id="variableprocesslist"></tbody>
-
-        </table>
-
-        <table class="table">
-        <tr><th>Add process:</th><tr>
-        <tr>
-            <td>
-                <div class="input-prepend input-append">
-                    <select id="process-select"></select>
-
-                    <span id="type-value" style="display:none">
-                        <input type="text" id="value-input" style="width:125px" />
-                    </span>
-
-                    <span id="type-input" style="display:none">
-                        <select id="input-select" style="width:140px;"></select>
-                    </span>
-
-                    <span id="type-feed">
-                        <select id="feed-select" style="width:140px;"></select>
-                        
-                        <input type="text" id="feed-name" style="width:150px;" placeholder="Feed name..." />
-                        <input type="hidden" id="feed-tag"/>
-
-                        <span class="add-on feed-engine-label">Feed engine: </span>
-                        <select id="feed-engine">
-                            <option value=5 >Fixed Interval (PHPFINA) - recommended, match interval with post rate</option>
-                            <!--<option value=6 >Fixed Interval With Averaging (PHPFIWA)</option>-->
-                            <option value=2 >Variable Interval (PHPTIMESERIES) - for infrequent, irregular data</option>
-                        </select>
-
-
-                        <select id="feed-interval" style="width:130px">
-                            <option value="">Select interval</option>
-                            <!--<option value=5>5s</option>-->
-                            <option value=10>10s</option>
-                            <option value=15>15s</option>
-                            <option value=20>20s</option>
-                            <option value=30>30s</option>
-                            <option value=60>60s</option>
-                            <option value=120>2 mins</option>
-                            <option value=300>5 mins</option>
-                            <option value=600>10 mins</option>
-                            <option value=900>15 mins</option>
-                            <option value=1200>20 mins</option>
-                            <option value=1800>30 mins</option>
-                            <option value=3600>1 hour</option>
-                        </select>
-                        
-                    </span>
-                    <button id="process-add" class="btn btn-info"><?php echo _('Add'); ?></button>
-                </div>
-            </td>
-        </tr>
-        <tr>
-          <td id="description"></td>
-        </tr>
-        </table>
-    </div>
-    <br>
-    
-    <div id="table"></div>
-
-    <div id="noinputs" class="alert alert-block hide">
-            <h4 class="alert-heading"><?php echo _('No inputs created'); ?></h4>
-            <p><?php echo _('Inputs is the main entry point for your monitoring device. Configure your device to post values here, you may want to follow the'); ?>
-            <a href="<?php echo $path; ?>site/api#input"><?php echo _('Input API Helper'); ?></a><?php echo _(' as a guide for generating your request.'); ?></p>
-    </div>
-
+	<div id="noinputs" class="alert alert-block hide">
+			<h4 class="alert-heading"><?php echo _('No inputs created'); ?></h4>
+			<p><?php echo _('Inputs are the main entry point for your monitoring device. Configure your device to post values here, you may want to follow the <a href="api">Input API helper</a> as a guide for generating your request.'); ?></p>
+	</div>
+	
+	<div id="input-loader" class="ajax-loader"></div>
 </div>
 
+<?php require "Modules/input/Views/input_dialog.php"; ?>
+
+<?php require "Modules/process/Views/process_ui.php"; ?>
+
 <script>
+  var path = "<?php echo $path; ?>";
 
-    var path = "<?php echo $path; ?>";
-    
-    var firstrun = true;
-    var assoc_inputs = {};
+  // Extend table library field types
+  for (z in customtablefields) table.fieldtypes[z] = customtablefields[z];
+  table.element = "#table";
+  table.groupprefix = "Node ";
+  table.groupby = 'nodeid';
+  table.groupfields = {
+	'processList':{'title':'<?php echo _("Process list"); ?>','type':"group-processlist"},
+	'time':{'title':"<?php echo _('Updated'); ?>", 'type':"group-updated"},
+	'dummy-6':{'title':'', 'type':"blank"},
+	'dummy-7':{'title':'', 'type':"blank"},
+	'dummy-8':{'title':'', 'type':"blank"},
+	'dummy-9':{'title':'', 'type':"blank"}
+  }
 
-    // Extend table library field types
-    for (z in customtablefields) table.fieldtypes[z] = customtablefields[z];
+  table.deletedata = false;
+  table.fields = {
+	//'id':{'type':"fixed"},
+	'nodeid':{'title':'<?php echo _("Node"); ?>','type':"fixed"},
+	'name':{'title':'<?php echo _("Key"); ?>','type':"text"},
+	'description':{'title':'<?php echo _("Name"); ?>','type':"text"},
+	'processList':{'title':'<?php echo _("Process list"); ?>','type':"processlist"},
+	'time':{'title':'<?php echo _("Updated"); ?>', 'type':"updated"},
+	'value':{'title':'<?php echo _("Value"); ?>','type':"value"},
+	// Actions
+	'edit-action':{'title':'', 'type':"edit"},
+	'delete-action':{'title':'', 'type':"delete"},
+	'view-action':{'title':'', 'type':"iconbasic", 'icon':'icon-wrench'}
+  }
 
-    table.element = "#table";
+  update();
 
-    table.fields = {
-        //'id':{'type':"fixed"},
-        'nodeid':{'title':'<?php echo _("Node:"); ?>','type':"fixed"},
-        'name':{'title':'<?php echo _("Key"); ?>','type':"fixed"},
-        'description':{'title':'<?php echo _("Description"); ?>','type':"text"},
-        'processList':{'title':'<?php echo _('Process list'); ?>','type':"processlist"},
-        'time':{'title':'last updated', 'type':"updated"},
-        'value':{'type':"value"},
+  function update(){   
+	var requestTime = (new Date()).getTime();
+	$.ajax({ url: path+"input/list.json", dataType: 'json', async: true, success: function(data, textStatus, xhr) {
+	  table.timeServerLocalOffset = requestTime-(new Date(xhr.getResponseHeader('Date'))).getTime(); // Offset in ms from local to server time
+	  table.data = data;
+	  table.draw();
+	  $('#input-loader').hide();
+	  if (table.data.length == 0) {
+		$("#noinputs").show();
+		$("#localheading").hide();
+		$("#apihelphead").hide();
+	  } else {
+		$("#noinputs").hide();
+		$("#localheading").show();
+		$("#apihelphead").show();
+	  }
+	}});
+  }
 
-        // Actions
-        'edit-action':{'title':'', 'type':"edit"},
-        'delete-action':{'title':'', 'type':"delete"},
-        'view-action':{'title':'', 'type':"iconbasic", 'icon':'icon-wrench'}
+  var updater;
+  function updaterStart(func, interval){
+	clearInterval(updater);
+	updater = null;
+	if (interval > 0) updater = setInterval(func, interval);
+  }
+  updaterStart(update, 10000);
 
-    }
+  $("#table").bind("onEdit", function(e){
+	updaterStart(update, 0);
+  });
 
-    table.groupprefix = "Node ";
-    table.groupby = 'nodeid';
+  $("#table").bind("onSave", function(e,id,fields_to_update){
+	$('#input-loader').show();
+	input.set(id,fields_to_update);
+	$('#input-loader').hide();
+  });
 
-    update();
+  $("#table").bind("onResume", function(e){
+	updaterStart(update, 10000);
+  });
 
-    function update()
-    {
-        $.ajax({ url: path+"input/list.json", dataType: 'json', async: true, success: function(data) {
-        
-            table.data = data;
-            table.draw();
-            if (table.data.length != 0) {
-                $("#noinputs").hide();
-                $("#apihelphead").show();
-                $("#localheading").show();
-            } else {
-                $("#noinputs").show();
-                $("#localheading").hide();
-                $("#apihelphead").hide();
-            }
-            
-            if (firstrun) {
-                firstrun = false;
-                load_all();
-            }
-        }});
-    }
+  $("#table").bind("onDelete", function(e,id,row){
+	var i = table.data[row];
+	if (i.processList == "" && i.description == "" && (parseInt(i.time) + (60*15)) < ((new Date).getTime() / 1000)){
+	  // delete now if has no values and updated +15m
+	  input.remove(id);
+	  table.remove(row);
+	  update();
+	} else {
+	  input_dialog.loadDelete(null, id, row);
+	}
+  });
 
-    var updater = setInterval(update, 10000);
-
-    $("#table").bind("onEdit", function(e){
-        clearInterval(updater);
-    });
-
-    $("#table").bind("onSave", function(e,id,fields_to_update){
-        input.set(id,fields_to_update);
-        updater = setInterval(update, 10000);
-    });
-
-    $("#table").bind("onDelete", function(e,id){
-        input.remove(id);
-        update();
-    });
-    
-    
-//------------------------------------------------------------------------------------------------------------------------------------
-// Process list UI js
-//------------------------------------------------------------------------------------------------------------------------------------
  
-    $("#table").on('click', '.icon-wrench', function() {
-        
-        var i = table.data[$(this).attr('row')];
-        console.log(i);
-        processlist_ui.inputid = i.id;
-        
-        var processlist = [];
-        if (i.processList!=null && i.processList!="")
-        {
-            var tmp = i.processList.split(",");
-            for (n in tmp)
-            {
-                var process = tmp[n].split(":");
-                processlist.push(process);
-            }
-        }
-        
-        processlist_ui.variableprocesslist = processlist;
-        processlist_ui.draw();
-        
-        // SET INPUT NAME
-        var inputname = "";
-        if (processlist_ui.inputlist[processlist_ui.inputid].description!="") {
-            inputname = processlist_ui.inputlist[processlist_ui.inputid].description;
-            $("#feed-name").val(inputname);
-        } else {
-            inputname = processlist_ui.inputlist[processlist_ui.inputid].name;
-            $("#feed-name").val("node:"+processlist_ui.inputlist[processlist_ui.inputid].nodeid+":"+inputname);
-        }
-        
-        $("#inputname").html("Node"+processlist_ui.inputlist[processlist_ui.inputid].nodeid+": "+inputname);
-        
-        $("#feed-tag").val("Node:"+processlist_ui.inputlist[processlist_ui.inputid].nodeid);
-        
-        $("#processlist-ui").show();
-        window.scrollTo(0,0);
-        
-    });
+  // Process list UI js
+  processlist_ui.init(0); // Set input context
 
-function load_all()
-{
-    for (z in table.data) assoc_inputs[table.data[z].id] = table.data[z];
-    console.log(assoc_inputs);
-    processlist_ui.inputlist = assoc_inputs;
-    
-    // Inputlist
-    var out = "";
-    for (i in processlist_ui.inputlist) {
-      var input = processlist_ui.inputlist[i];
-      out += "<option value="+input.id+">Node "+input.nodeid+":"+input.name+" "+input.description+"</option>";
-    }
-    $("#input-select").html(out);
-    
-    $.ajax({ url: path+"feed/list.json", dataType: 'json', async: true, success: function(result) {
-        
-        var feeds = {};
-        for (z in result) feeds[result[z].id] = result[z];
-        
-        processlist_ui.feedlist = feeds;
-        // Feedlist
-        var out = "<option value=-1>CREATE NEW:</option>";
-        for (i in processlist_ui.feedlist) {
-          out += "<option value="+processlist_ui.feedlist[i].id+">"+processlist_ui.feedlist[i].name+"</option>";
-        }
-        $("#feed-select").html(out);
-    }});
-    
-    $.ajax({ url: path+"input/getallprocesses.json", async: true, dataType: 'json', success: function(result){
-        processlist_ui.processlist = result;
-        var processgroups = [];
-        var i = 0;
-        for (z in processlist_ui.processlist)
-        {
-            i++;
-            var group = processlist_ui.processlist[z][5];
-            if (group!="Deleted") {
-                if (!processgroups[group]) processgroups[group] = []
-                processlist_ui.processlist[z]['id'] = z;
-                processgroups[group].push(processlist_ui.processlist[z]);
-            }
-        }
+  $("#table").on('click', '.icon-wrench', function() {
+	var i = table.data[$(this).attr('row')];
+	console.log(i);
+	var contextid = i.id; // Current Input ID
+	// Input name
+	var newfeedname = "";
+	var contextname = "";
+	if (i.description != "") { 
+		newfeedname = i.description;
+		contextname = "Node " + i.nodeid + " : " + newfeedname;
+	}
+	else { 
+		newfeedname = "node:" + i.nodeid+":" + i.name;
+		contextname = "Node " + i.nodeid + " : " + i.name;
+	}
+	var newfeedtag = "Node " + i.nodeid;
+	var processlist = processlist_ui.decode(i.processList); // Input process list
+	processlist_ui.load(contextid,processlist,contextname,newfeedname,newfeedtag); // load configs
+   });
 
-        var out = "";
-        for (z in processgroups)
-        {
-            out += "<optgroup label='"+z+"'>";
-            for (p in processgroups[z])
-            {
-                out += "<option value="+processgroups[z][p]['id']+">"+processgroups[z][p][0]+"</option>";
-            }
-            out += "</optgroup>";
-        }
-        $("#process-select").html(out);
-        
-        $("#description").html(process_info[1]);
-        processlist_ui.showfeedoptions(1);
-    }});
-   
-    processlist_ui.events();
-}
-</script>s
+  $("#save-processlist").click(function (){
+	var result = input.set_process(processlist_ui.contextid,processlist_ui.encode(processlist_ui.contextprocesslist));
+	if (result.success) { processlist_ui.saved(table); } else { alert('ERROR: Could not save processlist. '+result.message); }
+  });
+</script>

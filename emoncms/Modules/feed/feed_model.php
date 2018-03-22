@@ -62,9 +62,8 @@ class Feed
         }
     }
 
-    public function create($userid,$name,$datatype,$engine,$options_in,$server)
+    public function create($userid,$tag,$name,$datatype,$engine,$options_in,$server)
     {   
-        $tag = "";
         $userid = (int) $userid;
         if (preg_replace('/[^\p{N}\p{L}_\s-:]/u','',$name)!=$name) return array('success'=>false, 'message'=>'invalid characters in feed name');
         if (preg_replace('/[^\p{N}\p{L}_\s-:]/u','',$tag)!=$tag) return array('success'=>false, 'message'=>'invalid characters in feed tag');

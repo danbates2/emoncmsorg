@@ -121,7 +121,6 @@ class Input
     {
         $userid = (int) $userid;
         $inputid = (int) $inputid;
-
         $result = $this->mysqli->query("SELECT id FROM input WHERE userid = '$userid' AND id = '$inputid'");
         if ($result->fetch_array()) return true; else return false;
     }
@@ -278,18 +277,24 @@ class Input
         if (!$this->redis->exists("input:$id")) $this->load_input_to_redis($id);
         return $this->redis->hget("input:$id",'name');
     }
-
-    public function get_processlist($id)
+    
+    public function get_details($id)
     {
         $id = (int) $id;
         if (!$this->redis->exists("input:$id")) $this->load_input_to_redis($id);
-        return $this->redis->hget("input:$id",'processList');
+        return $this->redis->hGetAll("input:$id");
     }
-
+    
     public function get_last_value($id)
     {
         $id = (int) $id;
         return $this->redis->hget("input:lastvalue:$id",'value');
+    }
+    
+    public function get_last_timevalue($id)
+    {
+        $id = (int) $id;
+        return $this->redis->hmget("input:lastvalue:$id", array('time','value'));    
     }
     
     public function delete($userid, $inputid)
@@ -333,6 +338,119 @@ class Input
         }
         return "Deleted $n inputs";
     }
+
+    // -----------------------------------------------------------------------------------------
+    // Processlist functions
+    // -----------------------------------------------------------------------------------------
+    public function get_processlist($id)
+    {
+        $id = (int) $id;
+        if (!$this->redis->exists("input:$id")) $this->load_input_to_redis($id);
+        return $this->redis->hget("input:$id",'processList');
+    }
+    
+    // Set_processlist is called from input_controller
+    // a processlist might look something like:
+    // 1:1,2:0.1,1:2,eventp__ifrategtequalskip:10
+    // Historically emoncms has used integer based processid's to reference the desired process function
+    // however emoncms also supports text based process reference and a number of processes
+    // are only available via the text based function reference.
+    // $process_list is a list of processes
+    
+    public function set_processlist($userid, $id, $processlist, $process_list)
+    {    
+        $userid = (int) $userid;
+        
+        // Validate processlist
+        $pairs = explode(",",$processlist);
+        $pairs_out = array();
+        
+        foreach ($pairs as $pair)
+        {
+            $inputprocess = explode(":", $pair);
+            if (count($inputprocess)==2) {
+            
+                // Verify process id
+                $processid = $inputprocess[0];
+                if (!isset($process_list[$processid])) return array('success'=>false, 'message'=>_("Invalid process"));
+                
+                $process = $process_list[$processid];
+                $processtype = $process[1];                                       // Array position 1 is the processtype: VALUE, INPUT, FEED
+                $datatype = $process[4]; 
+                
+                // Verify argument
+                $arg = $inputprocess[1];
+                
+                if (isset($process[5]) && $process[5]=="Deleted") {
+                    return array('success'=>false, 'message'=>'This process is not supported on this server');
+                }
+                
+                // Check argument against process arg type
+                switch($processtype){
+                
+                    case ProcessArg::FEEDID:
+                        $feedid = (int) $arg;
+                        if (!$this->feed->exist($feedid)) return array('success'=>false, 'message'=>'Feed does not exist!');
+                        if (!$this->feed->access($userid,$feedid)) return array('success'=>false, 'message'=>'You do not have permission to access feed');
+                        break;
+                        
+                    case ProcessArg::INPUTID:
+                        $inputid = (int) $arg;
+                        if (!$this->exists($inputid)) return array('success'=>false, 'message'=>'Input does not exist!');
+                        if (!$this->access($userid,$inputid)) return array('success'=>false, 'message'=>'You do not have permission to access input');
+                        break;
+
+                    case ProcessArg::VALUE:
+                        if ($arg == '') return array('success'=>false, 'message'=>'Argument must be a valid number greater or less than 0.');
+                        if (!is_numeric($arg)) {
+                            return array('success'=>false, 'message'=>'Value is not numeric'); 
+                        }
+                        break;
+
+                    case ProcessArg::TEXT:
+                        if (preg_replace('/[^\p{N}\p{L}_\s\/.-]/u','',$arg)!=$arg) 
+                            return array('success'=>false, 'message'=>'Invalid characters in arg'); 
+                        break;
+                        
+                    case ProcessArg::NONE:
+                        $arg = false;
+                        break;
+                        
+                    default:
+                        $arg = false;
+                        break;
+                }
+                
+                $pairs_out[] = implode(":",array($processid,$arg));
+            }
+        }
+        
+        // check to see if feed is already being written too
+        // foreach ($listarray as $pairs) {
+        //    $keyval = explode(":",$item);
+        //    $tmp = $process_class->get_process((int)$keyval[0]);
+        //    if ($tmp[1]==ProcessArg::FEEDID && $keyval[1]==$arg) {
+        //        return array('success'=>false, 'message'=>'Feed is already being written to, select create new');
+        //    }
+        // }
+        
+        
+        // rebuild processlist from verified content
+        $processlist_out = implode(",",$pairs_out);
+    
+        $stmt = $this->mysqli->prepare("UPDATE input SET processList=? WHERE id=?");
+        $stmt->bind_param("si", $processlist_out, $id);
+        if (!$stmt->execute()) {
+            return array('success'=>false, 'message'=>_("Error setting processlist"));
+        }
+        
+        if ($this->mysqli->affected_rows>0){
+            if ($this->redis) $this->redis->hset("input:$id",'processList',$processlist_out);
+            return array('success'=>true, 'message'=>'Input processlist updated');
+        } else {
+            return array('success'=>false, 'message'=>'Input processlist was not updated');
+        }
+    }
     
     public function clean_processlist_feeds($process_class,$userid) 
     {
@@ -374,133 +492,11 @@ class Input
         return $out;
     }
 
-    // -----------------------------------------------------------------------------------------
-    // Processlist functions
-    // -----------------------------------------------------------------------------------------
-    public function add_process($process_class,$userid,$inputid,$processid,$arg)
-    {
-        $userid = (int) $userid;
-        $inputid = (int) $inputid;
-        $processid = (int) $processid;                                    // get process type (ProcessArg::)
-        
-        $process = $process_class->get_process($processid);
-        $processtype = $process[1];                                       // Array position 1 is the processtype: VALUE, INPUT, FEED
-        $datatype = $process[4];                                          // Array position 4 is the datatype
-        
-        if (!$process) {
-            return array('success'=>false, 'message'=>'This process does not exist');
-        }
-        
-        if (isset($process[5]) && $process[5]=="Deleted") {
-            return array('success'=>false, 'message'=>'This process is not supported on this server');
-        }
-        
-        switch ($processtype) {
-            case ProcessArg::VALUE:                                       // If arg type value
-                if ($arg == '') return array('success'=>false, 'message'=>'Argument must be a valid number greater or less than 0.');
-                
-                $arg = (float)$arg;
-                $arg = str_replace(',','.',$arg); // hack to fix locale issue that converts . to ,
-                    
-                break;
-            case ProcessArg::INPUTID:                                     // If arg type input
-                $arg = (int) $arg;
-                if (!$this->exists($arg)) return array('success'=>false, 'message'=>'Input does not exist!');
-                if (!$this->access($userid,$arg)) return array('success'=>false, 'message'=>'You do not have permission to access input');
-                break;
-            case ProcessArg::FEEDID:                                      // If arg type feed
-                $arg = (int) $arg;
-                if (!$this->feed->exist($arg)) return array('success'=>false, 'message'=>'Feed does not exist!');
-                if (!$this->feed->access($userid,$arg)) return array('success'=>false, 'message'=>'You do not have permission to access feed');
-                break;
-            case ProcessArg::NONE:                                        // If arg type none
-                $arg = 0;
-                break;
-        }
-
-        $list = $this->get_processlist($inputid);
-        
-        // check to see if feed is already being written too
-        $listarray = explode(",",$list);
-        foreach ($listarray as $item) {
-            $keyval = explode(":",$item);
-            $tmp = $process_class->get_process((int)$keyval[0]);
-            if ($tmp[1]==ProcessArg::FEEDID && $keyval[1]==$arg) {
-                return array('success'=>false, 'message'=>'Feed is already being written to, select create new');
-            }
-        }
-        
-        if ($list) $list .= ',';
-        $list .= $processid . ':' . $arg;
-        $this->set_processlist($inputid, $list);
-
-        return array('success'=>true, 'message'=>'Process added');
-    }
-
-    /******
-    * delete input process by index
-    ******/
-    public function delete_process($inputid, $index)
-    {
-        $inputid = (int) $inputid;
-        $index = (int) $index;
-
-        $success = false;
-        $index--; // Array is 0-based. Index from process page is 1-based.
-
-        // Load process list
-        $array = explode(",", $this->get_processlist($inputid));
-
-        // Delete process
-        if (count($array)>$index && $array[$index]) {unset($array[$index]); $success = true;}
-
-        // Save new process list
-        $this->set_processlist($inputid, implode(",", $array));
-
-        return $success;
-    }
-
-    /******
-    * move_input_process - move process up/down list of processes by $moveby (eg. -1, +1)
-    ******/
-    public function move_process($id, $index, $moveby)
-    {
-        $id = (int) $id;
-        $index = (int) $index;
-        $moveby = (int) $moveby;
-
-        if (($moveby > 1) || ($moveby < -1)) return false;  // Only support +/-1 (logic is easier)
-
-        $process_list = $this->get_processlist($id);
-        $array = explode(",", $process_list);
-        $index = $index - 1; // Array is 0-based. Index from process page is 1-based.
-
-        $newindex = $index + $moveby; // Calc new index in array
-        // Check if $newindex is greater than size of list
-        if ($newindex > (count($array)-1)) $newindex = (count($array)-1);
-        // Check if $newindex is less than 0
-        if ($newindex < 0) $newindex = 0;
-
-        $replace = $array[$newindex]; // Save entry that will be replaced
-        $array[$newindex] = $array[$index];
-        $array[$index] = $replace;
-
-        // Save new process list
-        $this->set_processlist($id, implode(",", $array));
-        return true;
-    }
-
     // USES: redis input
     public function reset_process($id)
     {
         $id = (int) $id;
         $this->set_processlist($id, "");
-    }
-    
-    private function set_processlist($id, $processlist)
-    {
-        $this->redis->hset("input:$id",'processList',$processlist);
-        $this->mysqli->query("UPDATE input SET processList = '$processlist' WHERE id='$id'");
     }
     
     // -----------------------------------------------------------------------------------------

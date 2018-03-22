@@ -113,7 +113,7 @@ function input_controller()
             }
         }
     }
-    
+
     // --------------------------------------------------------------------------------
     else if ($route->action == "clean") {
         $route->format = 'text';
@@ -124,21 +124,18 @@ function input_controller()
     }
     else if ($route->action == "list") $result = $input->getlist($session['userid']);
     else if ($route->action == "getinputs") $result = $input->get_inputs($session['userid']);
-    else if ($route->action == "getallprocesses") $result = $process->get_process_list();
-    
+
     else if (isset($_GET['inputid']) && $input->belongs_to_user($session['userid'],get("inputid")))
     {
         if ($route->action == 'set') $result = $input->set_fields(get('inputid'),get('fields'));
         else if ($route->action == "delete") $result = $input->delete($session['userid'],get("inputid"));
         else if ($route->action == "process")
         {
-            if ($route->subaction == "add") $result = $input->add_process($process,$session['userid'], get('inputid'), get('processid'), get('arg'), get('newfeedname'), get('newfeedinterval'),get('engine'));
-            else if ($route->subaction == "list") $result = $input->get_processlist(get("inputid"));
-            else if ($route->subaction == "delete") $result = $input->delete_process(get("inputid"),get('processid'));
-            else if ($route->subaction == "move") $result = $input->move_process(get("inputid"),get('processid'),get('moveby'));
-            else if ($route->subaction == "reset") $result = $input->reset_process(get("inputid"));
-        }           
-
+            if ($route->subaction == "get") $result = $input->get_processlist(get("inputid"));
+            else if ($route->subaction == "set") $result = $input->set_processlist($session['userid'], get('inputid'), post('processlist'),$process->get_process_list());
+            else if ($route->subaction == "reset") $result = $input->reset_processlist(get("inputid"));
+        }
+        
     // Multiple input actions - permissions are checked within model
     } else if (isset($_GET['inputids'])) {
     

@@ -46,7 +46,7 @@ function feed_controller()
             $redis->incr("fiveseconds:getdatahits");
             $result = $feed->get_id($session['userid'],get('name'));
         } elseif ($route->action == "create" && $session['write']) {
-            $result = $feed->create($session['userid'],get('name'),get('datatype'),get('engine'),json_decode(get('options')),0);
+            $result = $feed->create($session['userid'],get('tag'),get('name'),get('datatype'),get('engine'),json_decode(get('options')),0);
         } elseif ($route->action == "updatesize" && $session['write']) {
             $result = $feed->update_user_feeds_size($session['userid']);
         } elseif ($route->action == "fetch") {

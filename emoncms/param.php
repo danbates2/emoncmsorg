@@ -110,7 +110,7 @@ class Param
         if (isset($this->params[$index])) return true; else return false;
     }  
 }
-
+/*
 function hex2bin($hexstr) 
 { 
     $n = strlen($hexstr); 
@@ -143,4 +143,4 @@ function hash_equals($str1, $str2)
         }
         return !$ret;
     }
-}
+}*/

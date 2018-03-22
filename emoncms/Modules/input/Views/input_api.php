@@ -141,3 +141,10 @@ td:nth-of-type(2) { width:4%;}
 <tr><td><?php echo _('Delete an input'); ?></td><td>GET</td><td><a href="<?php echo $path; ?>input/delete?inputid=0"><?php echo $path; ?>input/delete?inputid=0</a></td></tr>
 <tr><td><?php echo _('Clean inputs without a process list'); ?></td><td>GET</td><td><a href="<?php echo $path; ?>input/clean"><?php echo $path; ?>input/clean</a></td></tr>
 </table>
+
+<p><b><?php echo _('Input process actions'); ?></b></p>
+<table class="table">
+    <tr><td><?php echo _('Get input process list'); ?></td><td>GET</td><td><a href="<?php echo $path; ?>input/process/get?inputid=1"><?php echo $path; ?>input/process/get?inputid=1</a></td></tr>
+    <tr><td><?php echo _('Set input process list'); ?></td><td>GET</td><td><a href="<?php echo $path; ?>input/process/set?inputid=0&processlist=0:0"><?php echo $path; ?>input/process/set?inputid=0&processlist=0:0</a></td></tr>
+    <tr><td><?php echo _('Reset input process list'); ?></td><td>GET</td><td><a href="<?php echo $path; ?>input/process/reset?inputid=0"><?php echo $path; ?>input/process/reset?inputid=0</a></td></tr>
+</table>
